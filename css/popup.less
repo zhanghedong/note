@@ -1,0 +1,118 @@
+@import 'reset.less';
+
+html {
+    height: 100%;
+}
+
+body {
+    background-color: #f3f3f3;
+    color: #555;
+    font-size: 0.625em;
+    overflow: hidden;
+    height: 100%;
+    background: url(../images/icons/body_bg.png);
+}
+
+#content::-webkit-scrollbar-thumb {
+    min-height: 28px;
+    padding-top: 100px;
+    border-left: 6px solid transparent;
+    border-right: 1px solid transparent;
+    border-top: 0 solid transparent;
+    border-bottom: 0 solid transparent;
+    background-clip: padding-box;
+    background-color: rgba(0, 0, 0, 0.1);
+    -webkit-box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.07);
+}
+
+#content::-webkit-scrollbar {
+    width: 16px;
+    height: 16px;
+}
+
+//#content::-webkit-scrollbar-button {
+//    height: 0;
+//    width: 0;
+//}
+#content::-webkit-scrollbar-track {
+    border-left: 6px solid transparent;
+    border-right: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+#container {
+    position: relative;
+    padding-left: 32px;
+    height: 100%;
+}
+
+#content {
+    height: 100%;
+    background-color: #f3f3f3;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    overflow: scroll;
+    -webkit-user-modify: read-write;
+    word-wrap: break-word;
+    outline: none;
+    -webkit-nbsp-mode: space;
+    -webkit-line-break: after-white-space;
+}
+
+#sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 32px;
+    border-left:1px solid #323232;
+    background-color: #474747;
+    height: 100%;
+    .sp{
+        display: block;
+        height: 40px;
+        border-bottom: 1px solid #313131;
+    }
+    a {
+        border-top:1px solid #525252;
+        border-bottom: 1px solid #313131;
+        position: relative;
+        outline: none;
+        display: block;
+        text-align: center;
+        text-indent:-9999px;
+        color: #fff;
+        height: 40px;
+        line-height: 40px;
+        font-size: 0.625em;
+        cursor: pointer;
+        background: url(../images/icons/opt_bg.png) no-repeat;
+        &:hover{
+//            top:1px
+        }
+        &.close-btn{
+            border-bottom: 0;
+            background-position:0 -60px ;
+            &:hover{
+                background-position: 0 -97px;
+            }
+        }
+        &.mouse-select{
+            background-position:0 -212px ;
+            &:hover{
+                background-position: 0 -249px;
+            }
+        }
+        &.clear-btn{
+            background-position:0 -288px ;
+            &:hover{
+                background-position: 0 -325px;
+            }
+        }
+        &.save{
+            background-position:0 -140px ;
+            &:hover{
+                background-position: 0 -177px;
+            }
+        }
+    }
+}

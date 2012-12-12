@@ -1,0 +1,133 @@
+@import 'reset.less';
+
+#content {
+    max-width: 960px;
+    margin:0 auto;
+    padding:1.5em;
+    div,p{
+        font-size: 0.875em;
+        line-height: 2;
+    }
+/*headings*/
+    h1, h2, h3, h4, h5, h6 {
+        font-weight: bold;
+    }
+    h1 {
+        font-size: 1.875em; /*30 / 16*/
+        line-height: 1.6em; /* 48 / 30*/
+        margin: 1em 0;
+    }
+    h2, h3 {
+        font-size: 1.3125em; /*21 / 16*/
+        line-height: 1.15; /*24 / 21*/
+        margin: 1em 0;
+    }
+    h3 {
+        font-weight: normal;
+    }
+    h4 {
+        font-size: 1.125em; /*18 / 16*/
+        margin-top: 2.67em; /*48 / 18*/
+    }
+    h5, h6 {
+        font-size: 1em; /*16*/
+    }
+    .article-header {
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 1.875em;
+        padding-bottom: 0.8125em;
+    }
+/*link*/
+    a {
+        color: #10638F;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    a:hover, a:active {
+        color:#10638F;
+        text-decoration: underline;
+    }
+/*list*/
+    ul, ol {
+        margin: 0 0 1.5em 1.5em;
+    }
+    ol li {
+        list-style-type: decimal;
+        list-style-position: outside;
+        line-height: 1.5;
+    }
+    ul li {
+        list-style-type: disc;
+        list-style-position: outside;
+        line-height: 1.5;
+    }
+/* tables */
+    table {
+        margin-bottom: 1.5em; /*24 / 16*/
+        font-size: 1em; /* width: 100%; */
+    }
+    thead th, tfoot th {
+        padding: .25em .25em .25em .4em;
+        text-transform: uppercase;
+    }
+    th {
+        text-align: left;
+    }
+    td {
+        vertical-align: top;
+        padding: .25em .25em .25em .4em;
+    }
+/*formatting*/
+    em, i {
+        font-style: italic;
+    }
+    strong, b {
+        font-weight: bold;
+    }
+/* preformatted */
+    pre, code, tt {
+        font-size: .875em;
+        line-height: 1.714285em;
+    }
+    footer{
+        margin: .5em 0;
+        font-size: 0.625em;
+    }
+
+    code, samp, kbd {
+        font-family: "Courier New", Courier, monospace, sans-serif;
+        text-align: left;
+        color: #555;
+    }
+    pre code {
+        line-height: 1.6em;
+        font-size: 11px;
+    }
+    pre {
+        padding: 0.1em 0.5em 0.3em 0.7em;
+        border: 1px dashed #66CC33;
+        background-color: #fff;
+        margin: 1.7em 0 1.7em 0.3em;
+        overflow: auto;
+        width: 93%;
+        i,span{
+            color: #080;
+        }
+        em,strong{
+            font-weight: 700;
+        }
+    }
+/* target IE7 and IE6 */
+    *:first-child+html pre {
+        padding-bottom: 2em;
+        overflow-y: hidden;
+        overflow: visible;
+        overflow-x: auto;
+    }
+    * html pre {
+        padding-bottom: 2em;
+        overflow: visible;
+        overflow-x: auto;
+    }
+}
+

@@ -1,0 +1,24 @@
+#note91_chrome_extension {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 400px;
+    height: 100%;
+    min-height: 304px;
+    background-color: rgba(0, 0, 0, .5);
+    z-index: 20121207;
+    display: none;
+    overflow: hidden;
+}
+
+#note91_popup_resize {
+    position: absolute;
+    bottom: 0;
+    height: 24px;
+    width: 32px;
+    color: #fff;
+    background: url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat;
+}
+#note91_popup_resize:hover{
+    background: url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat 0 -37px;
+}
