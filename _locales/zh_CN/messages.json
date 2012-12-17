@@ -22,5 +22,30 @@
     "action_resize_title":{
         "description":"\u5DE6\u53F3\u79FB\u52A8\u7A97\u53E3\u5927\u5C0F",
         "message":"\u5DE6\u53F3\u79FB\u52A8\u7A97\u53E3\u5927\u5C0F"
+    },
+    "is_retrieving_remote_image_tip":{
+        "description":"\u6B63\u5728\u4FDD\u5B58\u56FE\u7247\u6587\u4EF6",
+        "message":"\u6B63\u5728\u4FDD\u5B58\u56FE\u7247\u6587\u4EF6..."
+    },
+    "retrieve_images_failed":{
+        "description":"\u56FE\u7247\u4FDD\u5B58\u5931\u8D25",
+        "message":"\u56FE\u7247\u4FDD\u5B58\u5931\u8D25"
+    },
+    "is_uploading_images_tip":{
+        "description":"\u6B63\u5728\u4E0A\u4F20\u7167\u7247",
+        "message":"\u6B63\u5728\u4E0A\u4F20\u7167\u7247"
+    },
+    "upload_images_failed":{
+        "description":"\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25",
+        "message":"\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25"
+    },
+    "is_uploaded_images_tip":{
+        "description":"\u7167\u7247\u4E0A\u4F20\u6210\u529F",
+        "message":"\u7167\u7247\u4E0A\u4F20\u6210\u529F"
+    },
+    "note_save_succeed":{
+        "description":"\u4FDD\u5B58\u6210\u529F",
+        "message":"\u4FDD\u5B58\u6210\u529F"
     }
+
 }

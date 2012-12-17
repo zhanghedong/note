@@ -1,24 +1,2 @@
-#note91_chrome_extension {
-    position: fixed;
-    right: 0;
-    top: 0;
-    width: 400px;
-    height: 100%;
-    min-height: 304px;
-    background-color: rgba(0, 0, 0, .5);
-    z-index: 20121207;
-    display: none;
-    overflow: hidden;
-}
-
-#note91_popup_resize {
-    position: absolute;
-    bottom: 0;
-    height: 24px;
-    width: 32px;
-    color: #fff;
-    background: url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat;
-}
-#note91_popup_resize:hover{
-    background: url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat 0 -37px;
-}
+#note91_chrome_extension{position:fixed;right:0;top:0;width:400px;height:100%;min-height:304px;background-color:rgba(0,0,0,.5);z-index:20121207;display:none;overflow:hidden}#note91_popup_resize{position:absolute;bottom:0;height:24px;width:32px;color:#fff;background:url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat}#note91_popup_resize:hover{background:url('chrome-extension://__MSG_@@extension_id__/images/icons/opt_bg.png') no-repeat 0 -37px}#note91_clip_mask_mark_panel .note91-clip-mark{border:3px solid #a2cca2;position:absolute;top:-99px;left:-99px;z-index:2147483645;background:transparent}#note91_clip_mask_mark_panel .note91-clip-mark .note91-clip-mark-inner{background-color:#cfc;height:100%;width:100%;position:absolute;left:0;top:0;opacity:.3}#note91_clip_mask_mark_panel .note91-clip-mark .note91-clip-mark-inner .note91-clip-mark-expandor,#note91_clip_mask_mark_panel .note91-clip-mark .note91-clip-mark-inner .note91-clip-mark-close{background-color:#ddd;width:20px;height:20px;position:absolute;left:1px;top:1px;z-index:2147483645}#note91_clip_mask_mark_panel .note91-clip-mark .note91-clip-mark-inner .note91-clip-mark-close{left:28px}#note91_clip_mask_mark_panel .note91-clip-mask{border:3px solid #a2cca2;position:absolute;top:-999px;left:-999px;width:0;height:0;z-index:2147483645;background-color:transparent}
+/* This beautiful CSS-File has been crafted with LESS (lesscss.org) and compiled by simpLESS (wearekiss.com/simpless) */

@@ -3,7 +3,7 @@
 (function($){
 	$(function(){
 		var backgroundPage = chrome.extension.getBackgroundPage(),
-		notificationData = backgroundPage.maikuNote.notificationData,
+		notificationData = backgroundPage.noteHelper.getNotificationData(),
 		title = $('#title').html(notificationData.title),
 		content = $('#content').html(notificationData.content),
 		changeContent = function(data){
@@ -18,11 +18,11 @@
 			if(closeBtn.length > 0){
 				closeBtn.click(function(){
 					setTimeout(function(){
-						backgroundPage.maikuNote.notification.cancel();
+						backgroundPage.noteHelper.closeNotification();
 					},0);
 				});
 			}
-		}
+		};
 		checkCloseBtn();
 		chrome.extension.onMessage.addListener(function(request, sender){
 			if(!sender || sender.id !== chrome.i18n.getMessage("@@extension_id")) return;
