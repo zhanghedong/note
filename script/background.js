@@ -1,9 +1,6 @@
 /**
  * @zhanghd
  */
-var BASEURL = 'http://d.com/plus/';
-
-//inner.note.91.com/web/noteNew/addNote
 (function ($) {
     "use strict";
     var g = {};
@@ -11,15 +8,76 @@ var BASEURL = 'http://d.com/plus/';
         sid:'',
         uploadFileName:'file', //上传文件 name = file0,file1,file2
         saveImagesToServer:true,
-        uploadUrl:"http://inner.note.91.com/web/noteNew/addNote"
-//        uploadUrl:BASEURL + "api_demo/upload.php"
+        belongTo:'00000000-0000-0000-0000-000000000000',
+        imgArr:[],
+        imgGUIDArr:[],
+        noteID:'',
+        firstItem:''
+    };
+    var helper = {
+        getSuffix:function (url) {
+            return url.substr(url.length - 4).toLocaleLowerCase();
+        }
     };
     var process = {
+        jQuerySetUp:function () {
+            $.ajaxSetup({
+                dataType:'json',
+//                scriptCharset: "utf-8" ,
+                cache:false
+//                dataFilter:function (data) {
+//                },
+//                beforeSend:function (xhr) {
+//                    xhr.setRequestHeader('UserClient', 'note_web_chromeext/3.1.0');
+//                }
+            });
+        },
         init:function () {
             process.browserAction();
             process.initContextMenus();
             process.initExtensionConnect();
-            process.login();
+            process.jQuerySetUp();
+            process.addListener();
+            process.autoSignIn('');//通过cookie自动登录
+        },
+        autoSignIn:function (callback) {
+            chrome.cookies.getAll({url:"http://note.91.com"}, function (cookies) {
+                if (cookies) {
+                    var userName = '', uapc = '';
+                    for (var i = 0, j = cookies.length; i < j; i++) {
+                        if (cookies[i].name == 'lUserName') {
+                            userName = cookies[i].value;
+                        } else if (cookies[i].name == 'uapc') {
+                            uapc = cookies[i].value;
+                        }
+                    }
+                    if (uapc && userName) {
+                        var sid = noteHelper.sidDecode(uapc);
+                        noteConfig.setSid(sid);
+                        noteConfig.setUserName(userName)
+                        callback && callback(true);
+                    }else{
+                        callback && callback(false);
+                    }
+                }
+            });
+        },
+        autoSignOut:function(){
+            noteConfig.setSid('');
+            noteConfig.setUserName('');
+        },
+        addListener:function () {
+            chrome.tabs.onUpdated.addListener(function HandlerConnect(id, info) {
+                if (info.url == noteConfig.url.webSignIn) {
+                    process.autoSignIn(function(flag){
+                       if(flag){//为避免多次登录退出暂时先不移除监听，功能完成后优化
+//                           chrome.tabs.onUpdated.removeListener(HandlerConnect);
+                       }
+                    });
+                }else if (info.url == noteConfig.url.webSignOut) {//WEB端退出时同时插件也要退出
+                    process.autoSignOut();
+                }
+            });
         },
         browserAction:function () {
             chrome.browserAction.onClicked.addListener(function (tab) {
@@ -41,6 +99,17 @@ var BASEURL = 'http://d.com/plus/';
                 title:chrome.i18n.getMessage("select_image_context_menu"),
                 contexts:['all'],
                 onclick:function (info, tab) {
+                    g.params.imgArr = [];
+                    g.params.imgGUIDArr = [];
+                    var suffix = helper.getSuffix(info.srcUrl);
+                    var imgGUIDSrc = noteHelper.getGUID();
+                    if (/^\.(gif|jpg|png|jpeg|bmp)$/.test(suffix)) {
+                        imgGUIDSrc += suffix;
+                    } else {
+                        imgGUIDSrc += '.jpg';//默认为jpg
+                    }
+                    g.params.imgArr.push(info.srcUrl);
+                    g.params.imgGUIDArr.push(imgGUIDSrc);
                     var param = {
                         imgs:[info.srcUrl],
                         title:tab.title,
@@ -111,7 +180,7 @@ var BASEURL = 'http://d.com/plus/';
             xhr.send(null);
         },
         _saveImages:function (param, successCallback, failCallback) {
-            var imgs = param.imgs, titles = param.imgTitles, content;
+            var imgs = param.imgs, imgsGUID = param.imgsGUID, titles = param.imgTitles || '', content;
             if (g.params.saveImagesToServer) {
                 //正在保存图片提示
                 noteHelper.notifyHTML(chrome.i18n.getMessage('is_retrieving_remote_image_tip'), false);
@@ -142,12 +211,11 @@ var BASEURL = 'http://d.com/plus/';
                             }
                             noteHelper.notifyHTML(chrome.i18n.getMessage('is_uploading_images_tip'), false);
                             $.ajax({
-                                url:g.params.uploadUrl,
+                                url:noteConfig.url.uploadFile + '?sid=' + noteConfig.getSid(),
                                 type:"POST",
                                 data:formData,
                                 processData:false,
                                 contentType:false,
-                                dataType:'json',
                                 success:function (data) {
                                     console.log(data);
                                     console.log(typeof data);
@@ -163,7 +231,6 @@ var BASEURL = 'http://d.com/plus/';
                                     }
                                     if (successCallback) {
                                         //is replace images in page content
-                                        noteHelper.notifyHTML(chrome.i18n.getMessage('is_uploaded_images_tip'), false);
                                         successCallback(data, saveSucceedImgIndexByOrder);
                                     }
                                     removeFiles();
@@ -182,11 +249,13 @@ var BASEURL = 'http://d.com/plus/';
                 formData.append('type', 'Embedded');
                 formData.append('categoryId', param.categoryId || '');
                 formData.append('id', param.id || '');
+                formData.append('note_id', g.params.noteID || '');
+                formData.append('belong_to', g.params.belongTo || '');
                 for (var i = 0, l = totalImgNum; i < l; i++) {
                     process.downloadImage(imgs[i], i, function (file, idx) {
                         saveSucceedImgNum++;
                         saveSucceedImgIndex.push(idx);
-                        formData.append(g.params.uploadFileName + idx, file);
+                        formData.append(imgsGUID[idx], file);
                         files[idx] = file;
                         checkComplete();
                     }, function (idx) {
@@ -197,9 +266,7 @@ var BASEURL = 'http://d.com/plus/';
             }
         },
         saveImages:function (param, successCallback, failCallback) {
-            process.checkLogin(function () {
-                process._saveImages(param, successCallback, failCallback);
-            });
+            process._saveImages(param, successCallback, failCallback);
         },
         initExtensionConnect:function () {
             chrome.extension.onConnect.addListener(function (port) {
@@ -207,72 +274,180 @@ var BASEURL = 'http://d.com/plus/';
                     case 'actionsetpopupcontent':
                         process.setPopupContentConnect(port);
                         break;
+                    case 'savenotefrompopup':
+                        process.saveNoteFromPopup(port);
+                        break;
+                    case 'saveselectedcontent':
+                        process.saveSelectContent(port);
+                        break;
+
                     default:
                         break;
                 }
             });
 
         },
-        actionFromInspecotrHandler:function(){
-            var self = this;
-            port.onMessage.addListener(function(data){
-                //send to popup
-                chrome.tabs.sendRequest(port.sender.tab.id, {name: 'actionfrominspecotr', data: data});
-            });
-        },
         setPopupContentConnect:function (port) {
             port.onMessage.addListener(function (data) {
-                chrome.tabs.sendRequest(port.sender.tab.id, {name: 'actionsetpopupcontent', data: data});
+                chrome.tabs.sendRequest(port.sender.tab.id, {name:'actionsetpopupcontent', data:data});
 //                process.savePageContent(param);
                 //param.title, param.sourceurl, param.content,param.tags || '','',param.id ||''
             });
         },
-        saveNote:function (title, sourceurl, content, category_id, tags, id) {
-            var dataObj = {
-
-                "client_type":"pc",
-                "belong_to":"xxx", //所属文件夹ID，默认文件夹为GUID_NULL字符串
-
-                //主内容要怎么添加？
-                "title":"xxx", //笔记标题
-                "note_src":"xxx", //笔记来源
-
-               //这里的场景信息是什么？
-                "note_addr":"xxx", //场景信息
-
-                //以下数据取不到对添加会不会影响？
-                "first_item":"xxx", //主笔记项GUID
-                "file_ext":"xxx" , //主笔记项的文件夹扩展名
-                "file_size":"xxx", //文件校验
-                "stream_type":"xxx", //文件流类型（用于下载时头部设置流类型）
-                "md5":"xxx"   //文件的md5校验码
+        saveNote:function (noteData, successCallback, failCallback) {//id为当前note_id新流程先保存笔记 再上传图片未用到该参数
+            noteHelper.notifyHTML(chrome.i18n.getMessage('note_saving'), false);
+            var params = {
+                "title":noteData.title,
+                "sourceUrl":noteData.sourceUrl || "",
+                "content":noteData.content || "",
+                "belongTo":noteData.belong_to || g.params.belongTo
             };
-            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'));
+            console.log(params);
+            g.params.noteID = noteHelper.getGUID();
+            g.params.firstItem = noteHelper.getGUID();
+            //替换照片src
+            var itemContent = $(noteData.content);
+            g.params.imgArr = [];
+            g.params.imgGUIDArr = [];
+            itemContent.find('img').each(function (i) {
+                if (this.tagName.toLocaleLowerCase() == 'img') {
+                    var url = this.src;
+                    var suffix = helper.getSuffix(url);
+//                    var imgGUID = noteHelper.getGUID();
+                    var imgGUIDSrc = noteHelper.getGUID();
+                    if (/^\.(gif|jpg|png|jpeg|bmp)$/.test(suffix)) {
+                        imgGUIDSrc += suffix;
+                    } else {
+                        imgGUIDSrc += '.jpg';//默认为jpg
+                    }
+                    g.params.imgArr.push(url);
+                    g.params.imgGUIDArr.push(imgGUIDSrc);
+                    params.content = params.content.replace(new RegExp(url, "g"), imgGUIDSrc);
+                }
+            });
+            var contentHTML='<!DOCTYPE HTML>';
+            contentHTML+='    <html>';
+            contentHTML+='            <head>';
+            contentHTML+='                <meta charset="UTF-8">';
+            contentHTML+='                    <title></title>';
+            contentHTML+='                </head>';
+            contentHTML+='                <body>';
+            contentHTML+= params.content;
+            contentHTML+='                </body>';
+            contentHTML+='            </html>';
+            var dataObj = {
+                "client_type":"chrome",
+                "belong_to":params.belongTo, //所属文件夹ID，默认文件夹为GUID_NULL字符串
+                "title":params.title, //笔记标题
+                "note_src":params.sourceUrl, //笔记来源
+                "note_id":g.params.noteID,
+                "first_item":g.params.firstItem, //主笔记项GUID
+                "file_ext":"html", //主笔记项的文件夹扩展名
+                "item_content":contentHTML
+            };
+            $.ajax({
+                headers:{
+                    'X-Requested-With':'XMLHttpRequest'
+                },
+                type:'POST',
+                url:noteConfig.url.saveNote + '?sid=' + noteConfig.getSid(),
+                data:JSON.stringify(dataObj),
+                success:function (data) {
+                    if (data.code != 200) {
+                        failCallback && failCallback();
+                        return;
+                    }
+                    successCallback && successCallback();
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    failCallback && failCallback();
+                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                }
+            });
         },
-        savePageContent:function (param) {
-
-        },
-        saveSelectContent:function (param) {
-
-        },
-        saveSelectImage:function (param) {
-            process.checkLogin(function () {
-                process.saveImages(param, function (data) {
-                    var content = '<div class="image"><img src="' + data.data[g.params.uploadFileName + '0'] + '" title="' + param.imgTitles + '" /></div>';
-                    process.saveNote(param.title, param.sourceUrl, content, '', '', '');
+        saveNoteFromPopup:function (port) {
+            port.onMessage.addListener(function (msg) {
+                process.saveNote(msg, function () {
+                    if(g.params.imgArr.length > 0){
+                        var param = {
+                            imgs:g.params.imgArr,
+                            imgsGUID:g.params.imgGUIDArr
+                        };
+                        process.saveImages(param, function () {
+                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                        }, function () {
+                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                        });
+                    }else{
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                    }
+                }, function () {
+                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
                 })
             });
         },
-        login:function () {
-            chrome.cookies.get({url:"http://note.91.com", name:"uapc"}, function (cookie) {
-//                alert(JSON.stringify(cookie));
+        //等合并到saveNoteFromPopup
+        saveSelectContent:function (port) {
+            process.checkLogin(function () {
+                port.onMessage.addListener(function (data) {
+                    process.saveNote(data, function () {
+                        if(g.params.imgArr.length > 0){
+                            var param = {
+                                imgs:g.params.imgArr,
+                                imgsGUID:g.params.imgGUIDArr
+                            };
+                            process.saveImages(param, function () {
+                                noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                            }, function () {
+                                noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                            });
+                        }else{
+                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                        }
+                    }, function () {
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                    });
+                });
+            });
+        },
+        saveSelectImage:function (param) {
+            process.checkLogin(function () {
+                var content = '<div class="image"><img src="' + param.imgs[0] + '" title="' + param.imgTitles + '" /></div>';
+                var noteData = {
+                    title:param.title,
+                    sourceUrl:param.sourceUrl,
+                    content:content
+                };
+                process.saveNote(noteData, function () {
+                    var img = {
+                        imgs:g.params.imgArr,
+                        imgsGUID:g.params.imgGUIDArr
+                    };
+                    process.saveImages(img, function () {
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                    }, function () {
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                    })
+                }, function () {
+                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+                })
             });
         },
         checkLogin:function (callback) {
-            callback();
+            if (noteConfig.getSid()) {
+                callback();
+            } else {
+                process.autoSignIn(function(flag){
+                   if(!flag) {//取不到cookie时弹出登录框 这里主要是处理当登录WEB端退出后再登录导致tab监听丢失问题
+                       chrome.tabs.getSelected(function (tab) {
+                           process.openOrClosePopup();
+                       });
+                   }
+                });
+            }
         }
-
     };
     window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
     process.init();
 })(jQuery);
+

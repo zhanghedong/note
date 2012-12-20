@@ -46,7 +46,14 @@
                 var i, l, attrs, nodeClone;
                 nodeClone = node.clone(false);
                 nodeClone.find('*').each(function (k) {
-                    attrs = $(this)[0].attributes;
+                    attrs = this.attributes;
+                    var tagName = this.tagName.toLocaleLowerCase();
+                    if( tagName == 'img' ){
+                        this.src = this.src;//默认相对路径时改为绝对路径
+                    }
+                    if(tagName == 'a'){
+                        this.href = this.href;//默认相对路径时改为绝对路径
+                    }
                     for (i = 0; i < attrs.length; i++) {
                         if (attrs[i] && attrs[i].name) {
                             if (!helper.attributeAllowed(attrs[i].name)) {
@@ -282,7 +289,6 @@
                 events.addDomEvent();//添加事件
             },
             closePopup:function () {
-                process.removeInspector();
                 inspector.remove();
                 g.node.popupDom.fadeOut(function (e) {
                     $(this).remove();
@@ -326,7 +332,6 @@
                 } else if (document.selection) {
                     //Explorer selection, return the HTML
                     userSelection = document.selection.createRange();
-                    alert('bbb');
                     return userSelection.htmlText;
                 } else {
                     return '';
@@ -337,8 +342,8 @@
                 if (isAppend && !content) return;//add blank node, return;
                 var port = chrome.extension.connect({name:'actionsetpopupcontent'});
                 var data = {
-                    "content":content ? content[0].outerHTML : '',
                     "title":title,
+                    "content":content ? content[0].outerHTML : '',
                     "uid":uid,
                     "isAppend":isAppend
                 };
@@ -366,6 +371,15 @@
                     var port = chrome.extension.connect({name:'noarticlefrompage'});
                     port.postMessage();
                 }
+            },
+            saveNote:function (noteData) {
+                var port = chrome.extension.connect({name:'savenotefrompopup'});
+                //close popup
+                noteData.sourceUrl = location.href;
+                noteData.title = noteData.title|| document.title && document.title.split('-')[0],
+                port.postMessage(noteData);
+                //debug
+//                process.closePopup();
             }
         };
         /**
@@ -387,6 +401,9 @@
                             break;
                         case 'getpagecontentfromnotepopup':
                             process.getPageContent();
+                            break;
+                        case 'actionfrompopupsavenote':
+                            process.saveNote(e.data.noteData);
                             break;
                         default:
                             break;
@@ -465,10 +482,10 @@
                     content = html;
                 }
                 if (content) {
-                    var port = chrome.extension.connect({name:'getselectedcontent'});
+                    var port = chrome.extension.connect({name:'saveselectedcontent'});
                     port.postMessage({
-                        title:title,
-                        sourceurl:location.href,
+                        title:title || document.title && document.title.split('-')[0],
+                        sourceUrl:location.href,
                         content:content
                     });
                 }
