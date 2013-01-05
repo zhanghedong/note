@@ -25,6 +25,11 @@
         init:function () {
             process.addEvents();
             process.initExtensionRequest();
+            var flag = noteConfig.getInspectorSwitch();
+            if(flag == 'true'){
+                g.node.inspector.addClass('active');
+                parent.postMessage({name:'actionfrompopupinspecotr'}, '*');
+            }
         },
         addEvents:function () {
             g.node.closeBtn.bind('click', function (e) {
@@ -38,11 +43,20 @@
             });
             g.node.loginOut.bind('click', function (e) {
                 noteConfig.setSid('');
-                process.loginLayout();
+                noteConfig.setUserName('');
+                process.loginLayout('');
                 return false;
             });
             g.node.inspector.bind('click', function (e) {
-                parent.postMessage({name:'actionfrompopupinspecotr'}, '*');
+                var flag = noteConfig.getInspectorSwitch();
+                $(this).toggleClass('active');
+                if(flag == 'true'){
+                    noteConfig.setInspectorSwitch('false');
+                    parent.postMessage({name:'actionfrompopupremoveinspecotr'}, '*');
+                }else{
+                    noteConfig.setInspectorSwitch('true');
+                    parent.postMessage({name:'actionfrompopupinspecotr'}, '*');
+                }
                 return false;
             });
             g.node.save.bind('click', function (e) {
@@ -126,6 +140,7 @@
                         g.node.labelUserName.bind('keydown');
                         g.node.iptPassword.bind('keyup');
                         parent.postMessage({name:'getpagecontentfromnotepopup'}, '*');
+                        parent.postMessage({name:'signinhandlerfrompopup'}, '*');
                     } else {
                         g.node.loginNotice.html(data.msg);
                     }

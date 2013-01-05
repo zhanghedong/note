@@ -10,6 +10,16 @@
 //            baseUrl:'http://inner.note.91.com/'
             baseUrl:'http://api1.note.91.com/'
         };
+        g.themes ={//临时测试地址，等样式确认后发布到WEB端
+            "white": {
+                "css":'http://1625.me/temp/note91/themes/theme_1.css',
+                "icon":'http://1625.me/'
+            },
+            "gray":{
+                "css":'http://1625.me/temp/note91/themes/theme_2.css',
+                "icon":'http://1625.me/'
+            }
+        };
         var process = {
         };
         return {
@@ -31,6 +41,24 @@
             },
             getUserName:function(){
                 return (window.localStorage['note91chromeusername'] || '');
+            },
+            setTheme:function(themeName){
+                window.localStorage['note91chrometheme'] = g.themes[themeName];
+            },
+            getTheme:function(){
+                return (window.localStorage['note91chrometheme'] || g.themes.white );
+            },
+            setInspectorSwitch:function(s){
+                window.localStorage['note91chromeinspector'] = s;
+            },
+            getInspectorSwitch:function(){
+                return (window.localStorage['note91chromeinspector'] || 'false');
+            },
+            setSignInCallback:function(callback){
+                window.sessionStorage['note91chromelogincallback'] = callback;
+            },
+            getSignInCallback:function(){
+                return (window.sessionStorage['note91chromelogincallback'] || '');
             }
         };
     }();

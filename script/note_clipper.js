@@ -10,7 +10,7 @@
             isCreatedPopup:false,
             zIndex:20121204,
             popupWidth:400,
-            resize:false,
+            resize:true,
             timer:0,
             resizeOffsetX:0,
             marks:{},
@@ -26,6 +26,7 @@
             popupDom:{},
             doc:$(document),
             body:$(document.body),
+            resize:$('#note91_popup_resize'),
             mask:'',
             mark:'',
             maskMarkPanel:''
@@ -101,8 +102,8 @@
                 var html = '';
                 html += '<div note91clip="true" class="note91-clip-mark">';
                 html += '   <div note91clip="true" class="note91-clip-mark-inner">';
-                html += '      <div note91clip="true" class="note91-clip-mark-expandor">放大</div>';
-                html += '      <div note91clip="true" class="note91-clip-mark-close">删除</div>';
+//                html += '      <div note91clip="true" class="note91-clip-mark-expandor">放大</div>';
+//                html += '      <div note91clip="true" class="note91-clip-mark-close">删除</div>';
                 html += '   </div>';
                 html += '</div>';
                 return html;
@@ -121,7 +122,7 @@
                 g.node.mask = $(htmlLayout.mask);
                 g.node.mark = $(htmlLayout.mark);
                 g.node.maskMarkPanel.appendTo(document.body).append(g.node.mask);
-                g.node.body.bind('mousemove.note91clipmark',function (e) {
+ ;               g.node.body.bind('mousemove.note91clipmark',function (e) {
                     inspector.mouseMoveMarkHandler(e);
                 }).bind('click.note91clipmark',function (e) {
                         inspector.clickMarkHandler(e);
@@ -132,6 +133,7 @@
             remove:function () {
                 if (!g.node.maskMarkPanel) return;
                 g.node.maskMarkPanel.remove();
+                g.node.maskMarkPanel = '';
                 g.params.markedElements = {};
                 g.params.marks = {};
                 g.params.markCount = 0;
@@ -188,7 +190,13 @@
                 inspector.attachBox(target, mark);
                 g.params.markCount++;
                 var html = helper.removeAttrs(target);
-                process.sendContentToPopup(html, title, uid, true);
+                var data = {
+                    "content":html && html[0].outerHTML||"",
+                    "title":title||"",
+                    "uid":uid||"",
+                    "isAppend":true
+                };
+                process.sendContentToPopup(data);
                 g.params.markedElements[uid] = target;
                 g.params.marks[uid] = mark;
                 mark.data('uid', uid).click(function (e) {
@@ -204,7 +212,14 @@
             delMark:function (mark) {
                 var uid = mark.data('uid');
                 mark.remove();
-                process.sendContentToPopup('', '', uid);
+
+                var data = {
+                    "content":"",
+                    "title":"",
+                    "uid":uid,
+                    "isAppend":false
+                };
+                process.sendContentToPopup(data);
                 delete g.params.markedElements[uid];
             },
             clearMarks:function () {
@@ -286,10 +301,13 @@
                 g.node.popupDom = $(html).appendTo(document.body);
                 g.node.popupDom.fadeIn().find('iframe').eq(0).attr('src', chrome.extension.getURL('popup.html'));
                 g.params.isCreatedPopup = true;
+                g.node.resize = $('#note91_popup_resize');
                 events.addDomEvent();//添加事件
             },
             closePopup:function () {
                 inspector.remove();
+                g.node.body.removeClass('note91-popup-full-screen');
+                g.node.doc.unbind('keydown.note91');
                 g.node.popupDom.fadeOut(function (e) {
                     $(this).remove();
                     g.params.isCreatedPopup = false;
@@ -328,7 +346,7 @@
                     var clonedSelection = range.cloneContents();
                     var div = document.createElement('div');
                     div.appendChild(clonedSelection);
-                    return div.innerHTML;
+                    return div.outerHTML;
                 } else if (document.selection) {
                     //Explorer selection, return the HTML
                     userSelection = document.selection.createRange();
@@ -337,15 +355,15 @@
                     return '';
                 }
             },
-            sendContentToPopup:function (content, title, uid, isAppend) {//isAppend是否添加到已有内容
+            sendContentToPopup:function (param) {//isAppend是否添加到已有内容
                 //cannot send data directly to popup page, so connect to background page first
-                if (isAppend && !content) return;//add blank node, return;
+                if (param.isAppend && !param.content) return;//add blank node, return;
                 var port = chrome.extension.connect({name:'actionsetpopupcontent'});
                 var data = {
-                    "title":title,
-                    "content":content ? content[0].outerHTML : '',
-                    "uid":uid,
-                    "isAppend":isAppend
+                    "title":param.title||helper.escapeHTML(document.title && document.title.split('-')[0]),
+                    "content":param.content || "",
+                    "uid":param.uid || "",
+                    "isAppend":param.isAppend || false
                 };
                 port.postMessage(data);
             },
@@ -363,9 +381,15 @@
                         extractedContent = extractedContent.parentNode;
                     }
                     setTimeout(function () {
-                        var title = document.title && document.title.split('-')[0];
+                        var title = helper.escapeHTML(document.title && document.title.split('-')[0]);
                         var html = helper.removeAttrs($(extractedContent));
-                        process.sendContentToPopup(html, helper.escapeHTML(title), '');
+                        var data = {
+                            "content":html&&html[0].outerHTML||"",
+                            "title":title||"",
+                            "uid":"",
+                            "isAppend":""
+                        };
+                        process.sendContentToPopup(data);
                     }, 0);
                 } else {
                     var port = chrome.extension.connect({name:'noarticlefrompage'});
@@ -380,6 +404,24 @@
                 port.postMessage(noteData);
                 //debug
 //                process.closePopup();
+            },
+            signInHandler:function(){
+                var port = chrome.extension.connect({name:'signinhandler'});
+                port.postMessage();
+            },
+            resizePopup:function(){
+                var winWidth = $(window).width();
+                if (g.params.resize) {
+                    g.params.resize = false;
+                    g.node.popupDom.css('width','100%');
+                    g.node.resize.addClass('note91-popup-resize-close');
+                    g.node.body.addClass('note91-popup-full-screen');
+                }else{
+                    g.params.resize = true;
+                    g.node.popupDom.css('width','400px');
+                    g.node.resize.removeClass('note91-popup-resize-close');
+                    g.node.body.removeClass('note91-popup-full-screen');
+                }
             }
         };
         /**
@@ -396,6 +438,9 @@
                         case 'actionfrompopupinspecotr':
                             inspector.createPanel();
                             break;
+                        case 'actionfrompopupremoveinspecotr':
+                            inspector.remove();
+                            break;
                         case 'actionfrompopupclearinspecotr':
                             inspector.clearMarks();
                             break;
@@ -405,12 +450,25 @@
                         case 'actionfrompopupsavenote':
                             process.saveNote(e.data.noteData);
                             break;
+                        case 'signinhandlerfrompopup':
+                            process.signInHandler();
+                            break;
                         default:
                             break;
                     }
                 });
             },
             addDomEvent:function () {
+                g.node.resize.bind('click', function (e) {
+                    process.resizePopup();
+                    return false;
+                });
+                g.node.doc.bind('keydown.note91',function(e){
+                    if(e.keyCode == 37 || e.keyCode == 39){
+                        process.resizePopup();
+                    }
+                });
+                /* //拖动缩放
                 g.node.popupDom.find('a[role="resize"]').bind('mousedown', function (e) {
                     g.params.resizeOffsetX = e.pageX - $(this).offset().left; // 鼠标点击时相对目标元素左上角的位置。
                     g.params.resize = true;
@@ -449,6 +507,7 @@
                             end();
                         });
                 });
+                */
             }
         };
         /**
@@ -464,6 +523,14 @@
                 } else {
                     process.closePopup();
                 }
+            },
+            openPopup:function(){
+                if (!g.params.isCreatedPopup) {
+                    process.createPopup();
+                }
+            },
+            closePopup:function(){
+                process.closePopup();
             },
             getSelectedContent:function () {
                 var commonAncestorContainer = process.getSelectionContainer(), content = '', title = '';
@@ -486,9 +553,10 @@
                     port.postMessage({
                         title:title || document.title && document.title.split('-')[0],
                         sourceUrl:location.href,
-                        content:content
+                        content:'<div>'+content+'</div>'
                     });
                 }
+
             }
         };
     }();

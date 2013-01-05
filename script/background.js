@@ -12,7 +12,9 @@
         imgArr:[],
         imgGUIDArr:[],
         noteID:'',
-        firstItem:''
+        firstItem:'',
+        noteData:'',
+        uploadFilesNum:20
     };
     var helper = {
         getSuffix:function (url) {
@@ -38,9 +40,9 @@
             process.initExtensionConnect();
             process.jQuerySetUp();
             process.addListener();
-            process.autoSignIn('');//通过cookie自动登录
+            process.autoSignInOrOut('');//通过cookie自动登录
         },
-        autoSignIn:function (callback) {
+        autoSignInOrOut:function (callback) {
             chrome.cookies.getAll({url:"http://note.91.com"}, function (cookies) {
                 if (cookies) {
                     var userName = '', uapc = '';
@@ -53,39 +55,52 @@
                     }
                     if (uapc && userName) {
                         var sid = noteHelper.sidDecode(uapc);
-                        noteConfig.setSid(sid);
+                        if (sid) {
+                            noteConfig.setSid(sid);
+                        }
                         noteConfig.setUserName(userName)
                         callback && callback(true);
-                    }else{
+                    } else {
                         callback && callback(false);
                     }
+//                    else {
+//                        //clear chrome login
+//                        alert('set none');
+//                        noteConfig.setSid('');
+//                        noteConfig.setUserName('');
+//                        callback && callback(false);
+//                    }
+                } else {
+                    //clear chrome login
+                    noteConfig.setSid('');
+                    noteConfig.setUserName('');
                 }
             });
         },
-        autoSignOut:function(){
-            noteConfig.setSid('');
-            noteConfig.setUserName('');
-        },
         addListener:function () {
             chrome.tabs.onUpdated.addListener(function HandlerConnect(id, info) {
-                if (info.url == noteConfig.url.webSignIn) {
-                    process.autoSignIn(function(flag){
-                       if(flag){//为避免多次登录退出暂时先不移除监听，功能完成后优化
-//                           chrome.tabs.onUpdated.removeListener(HandlerConnect);
-                       }
+                if (info.url && info.url.indexOf('note.91.com') > 0) {
+                    process.autoSignInOrOut(function (flag) {
+                        if (!flag) {
+                            noteConfig.setSid('');
+                            noteConfig.setUserName('');
+                            //为避免多次登录退出暂时先不移除监听，功能完成后优化
+                            //chrome.tabs.onUpdated.removeListener(HandlerConnect);
+                        }
                     });
-                }else if (info.url == noteConfig.url.webSignOut) {//WEB端退出时同时插件也要退出
-                    process.autoSignOut();
                 }
             });
         },
         browserAction:function () {
             chrome.browserAction.onClicked.addListener(function (tab) {
-                process.openOrClosePopup();
+                chrome.tabs.executeScript(null, {"code":"noteClipper.openOrClosePopup();"});
             });
         },
-        openOrClosePopup:function () {
-            chrome.tabs.executeScript(null, {"code":"noteClipper.openOrClosePopup();"});
+        openPopup:function () {
+            chrome.tabs.executeScript(null, {"code":"noteClipper.openPopup();"});
+        },
+        closePopup:function () {
+            chrome.tabs.executeScript(null, {"code":"noteClipper.closePopup();"});
         },
         initContextMenus:function () {
             chrome.contextMenus.create({
@@ -101,22 +116,26 @@
                 onclick:function (info, tab) {
                     g.params.imgArr = [];
                     g.params.imgGUIDArr = [];
-                    var suffix = helper.getSuffix(info.srcUrl);
-                    var imgGUIDSrc = noteHelper.getGUID();
-                    if (/^\.(gif|jpg|png|jpeg|bmp)$/.test(suffix)) {
-                        imgGUIDSrc += suffix;
+                    if (info.srcUrl) {
+                        var suffix = helper.getSuffix(info.srcUrl);
+                        var imgGUIDSrc = noteHelper.getGUID();
+                        if (/^\.(gif|jpg|png|jpeg|bmp)$/.test(suffix)) {
+                            imgGUIDSrc += suffix;
+                        } else {
+                            imgGUIDSrc += '.jpg';//默认为jpg
+                        }
+                        g.params.imgArr.push(info.srcUrl);
+                        g.params.imgGUIDArr.push(imgGUIDSrc);
+                        var param = {
+                            imgs:[info.srcUrl],
+                            title:tab.title,
+                            imgTitles:[tab.title],
+                            sourceUrl:tab.url
+                        };
+                        process.saveSelectImage(param);//不需要加callback
                     } else {
-                        imgGUIDSrc += '.jpg';//默认为jpg
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('click_on_images'));
                     }
-                    g.params.imgArr.push(info.srcUrl);
-                    g.params.imgGUIDArr.push(imgGUIDSrc);
-                    var param = {
-                        imgs:[info.srcUrl],
-                        title:tab.title,
-                        imgTitles:[tab.title],
-                        sourceUrl:tab.url
-                    };
-                    process.saveSelectImage(param);//不需要加callback
 //                    chrome.tabs.executeScript(tab.id, {code:"noteClipper.saveImage(["+param+"]);"});
                 }
             });
@@ -180,7 +199,7 @@
             xhr.send(null);
         },
         _saveImages:function (param, successCallback, failCallback) {
-            var imgs = param.imgs, imgsGUID = param.imgsGUID, titles = param.imgTitles || '', content;
+            var imgs = g.params.imgArr, imgsGUID = g.params.imgGUIDArr, content = '';
             if (g.params.saveImagesToServer) {
                 //正在保存图片提示
                 noteHelper.notifyHTML(chrome.i18n.getMessage('is_retrieving_remote_image_tip'), false);
@@ -195,7 +214,7 @@
                         process.removeFile(files[idx].name, files[idx].size);
                     }
                 };
-                var checkComplete = function () {
+                var checkComplete = function (form) {
                     if (saveSucceedImgNum + saveFailedImgNum == totalImgNum) {
                         if (saveFailedImgNum == totalImgNum) {
                             //all images retrieve failed
@@ -213,12 +232,10 @@
                             $.ajax({
                                 url:noteConfig.url.uploadFile + '?sid=' + noteConfig.getSid(),
                                 type:"POST",
-                                data:formData,
+                                data:form,
                                 processData:false,
                                 contentType:false,
                                 success:function (data) {
-                                    console.log(data);
-                                    console.log(typeof data);
                                     if (data.code != 200) {
                                         //todo: server error, pending note...
                                         console.log('Internal error: ');
@@ -245,24 +262,55 @@
                         }
                     }
                 };
-                var formData = new FormData();
-                formData.append('type', 'Embedded');
-                formData.append('categoryId', param.categoryId || '');
-                formData.append('id', param.id || '');
-                formData.append('note_id', g.params.noteID || '');
-                formData.append('belong_to', g.params.belongTo || '');
+                var filesInfo = [];
+                var checkDownloadAndUpload = function () {//分批上传
+                    //console.log(filesInfo);
+                    if (saveSucceedImgNum + saveFailedImgNum == totalImgNum) {
+                        var formData = new FormData(),uploadFlag = false;
+                        formData.append('type', 'Embedded');
+                        formData.append('categoryId', param.categoryId || '');
+                        formData.append('id', param.id || '');
+                        formData.append('note_id', g.params.noteID || '');
+                        formData.append('belong_to', g.params.belongTo || '');
+                        var currNum = 0;//
+                        for (var key in filesInfo) {
+                            currNum++;
+                            uploadFlag = false;
+                            formData.append(key, filesInfo[key]);
+                            if (currNum == g.params.uploadFilesNum && g.params.uploadFilesNum < totalImgNum) {
+                                checkComplete(formData);
+                                uploadFlag = true;
+                                currNum = 0;
+                                formData = new FormData();
+                                formData.append('type', 'Embedded');
+                                formData.append('categoryId', param.categoryId || '');
+                                formData.append('id', param.id || '');
+                                formData.append('note_id', g.params.noteID || '');
+                                formData.append('belong_to', g.params.belongTo || '');
+                            }
+                        }
+                        if(!uploadFlag){
+                            checkComplete(formData);
+                        }
+                    }
+                    //formData.append(imgsGUID[idx], file);
+                };
                 for (var i = 0, l = totalImgNum; i < l; i++) {
                     process.downloadImage(imgs[i], i, function (file, idx) {
                         saveSucceedImgNum++;
                         saveSucceedImgIndex.push(idx);
-                        formData.append(imgsGUID[idx], file);
-                        files[idx] = file;
-                        checkComplete();
+                        filesInfo[imgsGUID[idx]] = file;
+                        //formData.append(imgsGUID[idx], file);
+                        //files[idx] = file;
+                        //checkComplete();
+                        checkDownloadAndUpload();
                     }, function (idx) {
                         saveFailedImgNum++;
-                        checkComplete();
+                        //checkComplete();
                     });
                 }
+
+
             }
         },
         saveImages:function (param, successCallback, failCallback) {
@@ -275,23 +323,29 @@
                         process.setPopupContentConnect(port);
                         break;
                     case 'savenotefrompopup':
-                        process.saveNoteFromPopup(port);
+                        process.saveContentFromPopup(port);
                         break;
                     case 'saveselectedcontent':
                         process.saveSelectContent(port);
                         break;
-
+                    case 'signinhandler':
+                        process.signInHandler(port);
+                        break;
                     default:
                         break;
                 }
             });
 
         },
+        signInHandler:function (port) {
+            if (g.params.noteData) {
+                process.save(g.params.noteData);
+                g.params.noteData = '';
+            }
+        },
         setPopupContentConnect:function (port) {
             port.onMessage.addListener(function (data) {
                 chrome.tabs.sendRequest(port.sender.tab.id, {name:'actionsetpopupcontent', data:data});
-//                process.savePageContent(param);
-                //param.title, param.sourceurl, param.content,param.tags || '','',param.id ||''
             });
         },
         saveNote:function (noteData, successCallback, failCallback) {//id为当前note_id新流程先保存笔记 再上传图片未用到该参数
@@ -302,7 +356,6 @@
                 "content":noteData.content || "",
                 "belongTo":noteData.belong_to || g.params.belongTo
             };
-            console.log(params);
             g.params.noteID = noteHelper.getGUID();
             g.params.firstItem = noteHelper.getGUID();
             //替换照片src
@@ -322,19 +375,26 @@
                     }
                     g.params.imgArr.push(url);
                     g.params.imgGUIDArr.push(imgGUIDSrc);
-                    params.content = params.content.replace(new RegExp(url, "g"), imgGUIDSrc);
+                    try{
+                        params.content = params.content.replace(new RegExp(url, "g"), imgGUIDSrc);
+                    }catch(e){
+                       console.log(e);
+                    }
                 }
             });
-            var contentHTML='<!DOCTYPE HTML>';
-            contentHTML+='    <html>';
-            contentHTML+='            <head>';
-            contentHTML+='                <meta charset="UTF-8">';
-            contentHTML+='                    <title></title>';
-            contentHTML+='                </head>';
-            contentHTML+='                <body>';
-            contentHTML+= params.content;
-            contentHTML+='                </body>';
-            contentHTML+='            </html>';
+            var contentHTML = '<!DOCTYPE HTML>';
+            contentHTML += '    <html>';
+            contentHTML += '           <head>';
+            contentHTML += '                <meta charset="UTF-8">';
+            contentHTML += '                <title>' + params.title + '</title>';
+            contentHTML += '                <link rel="stylesheet" href="' + noteConfig.getTheme().css + '" />';
+            contentHTML += '           </head>';
+            contentHTML += '           <body>';
+            contentHTML += '                <div class="note91-content">';
+            contentHTML += params.content;
+            contentHTML += '                </div>';
+            contentHTML += '           </body>';
+            contentHTML += '    </html>';
             var dataObj = {
                 "client_type":"chrome",
                 "belong_to":params.belongTo, //所属文件夹ID，默认文件夹为GUID_NULL字符串
@@ -361,90 +421,78 @@
                 },
                 error:function (jqXHR, textStatus, errorThrown) {
                     failCallback && failCallback();
-                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
+//                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
                 }
             });
         },
-        saveNoteFromPopup:function (port) {
-            port.onMessage.addListener(function (msg) {
-                process.saveNote(msg, function () {
-                    if(g.params.imgArr.length > 0){
-                        var param = {
-                            imgs:g.params.imgArr,
-                            imgsGUID:g.params.imgGUIDArr
-                        };
-                        process.saveImages(param, function () {
-                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
-                        }, function () {
-                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
-                        });
-                    }else{
-                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
-                    }
-                }, function () {
-                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
-                })
+        saveSelectContent:function (port) {
+            port.onMessage.addListener(function (noteData) {
+                console.log(noteData);
+                if (noteData.content) {
+                    process.checkLogin(noteData, function (post) {
+                        process.save(noteData);
+                    });
+                } else {
+                    noteHelper.notifyHTML(chrome.i18n.getMessage('not_found_content'));
+                }
             });
         },
-        //等合并到saveNoteFromPopup
-        saveSelectContent:function (port) {
-            process.checkLogin(function () {
-                port.onMessage.addListener(function (data) {
-                    process.saveNote(data, function () {
-                        if(g.params.imgArr.length > 0){
-                            var param = {
-                                imgs:g.params.imgArr,
-                                imgsGUID:g.params.imgGUIDArr
-                            };
-                            process.saveImages(param, function () {
-                                noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
-                            }, function () {
-                                noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
-                            });
-                        }else{
-                            noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
-                        }
+        saveContentFromPopup:function (port) {
+            port.onMessage.addListener(function (noteData) {
+                process.checkLogin(noteData, function (post) {
+                    process.save(noteData);
+                });
+            });
+        },
+        save:function (noteData) {
+            process.closePopup();
+            process.saveNote(noteData, function () {
+                if (g.params.imgArr.length > 0) {
+                    process.saveImages({}, function () {
+                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
                     }, function () {
                         noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
                     });
-                });
+                } else {
+                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
+                }
+            }, function () {
+                noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed_and_sign_in'));
+                process.reLogin(noteData);
             });
         },
         saveSelectImage:function (param) {
-            process.checkLogin(function () {
-                var content = '<div class="image"><img src="' + param.imgs[0] + '" title="' + param.imgTitles + '" /></div>';
-                var noteData = {
-                    title:param.title,
-                    sourceUrl:param.sourceUrl,
-                    content:content
-                };
-                process.saveNote(noteData, function () {
-                    var img = {
-                        imgs:g.params.imgArr,
-                        imgsGUID:g.params.imgGUIDArr
-                    };
-                    process.saveImages(img, function () {
-                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_succeed'), 2000);
-                    }, function () {
-                        noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
-                    })
-                }, function () {
-                    noteHelper.notifyHTML(chrome.i18n.getMessage('note_save_failed'));
-                })
+            var content = '<div class="image"><img src="' + param.imgs[0] + '" title="' + param.imgTitles + '" /></div>';
+            var noteData = {
+                title:param.title,
+                sourceUrl:param.sourceUrl,
+                content:content
+            };
+            process.checkLogin(noteData, function () {
+                process.save(noteData);
             });
         },
-        checkLogin:function (callback) {
+        checkLogin:function (noteData, callback) {
             if (noteConfig.getSid()) {
                 callback();
             } else {
-                process.autoSignIn(function(flag){
-                   if(!flag) {//取不到cookie时弹出登录框 这里主要是处理当登录WEB端退出后再登录导致tab监听丢失问题
-                       chrome.tabs.getSelected(function (tab) {
-                           process.openOrClosePopup();
-                       });
-                   }
+                process.autoSignInOrOut(function (flag) {
+                    if (!flag) {//取不到cookie时弹出登录框 这里主要是处理当登录WEB端退出后再登录导致tab监听丢失问题
+                        g.params.noteData = noteData;//保存临时数据用户登录后调用
+                        chrome.tabs.getSelected(function (tab) {
+                            process.openPopup();
+                        });
+                    }
                 });
             }
+        },
+        reLogin:function (noteData) {
+            g.params.noteData = noteData;//保存临时数据用户登录后调用
+            noteConfig.setSid('');
+            noteConfig.setUserName('');
+            chrome.tabs.getSelected(function (tab) {
+                process.openPopup();
+            });
         }
     };
     window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;

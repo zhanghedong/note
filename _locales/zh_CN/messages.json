@@ -1,46 +1,54 @@
 {
     "chrome_extension_name":{
-        "description":"91Note",
-        "message":"91Note"
+        "description":"91剪报",
+        "message":"91\u526A\u62A5"
     },
     "chrome_extension_title":{
-        "description":"91Note",
-        "message":"91Note"
+        "description":"91剪报",
+        "message":"91\u526A\u62A5"
     },
     "chrome_extension_description":{
-        "description":"91Note \u526A\u8F91\u63D2\u4EF6",
-        "message":"91Note \u526A\u8F91\u63D2\u4EF6"
+        "description":"91剪报 \u526A\u8F91\u63D2\u4EF6",
+        "message":"91\u526A\u62A5 \u526A\u8F91\u63D2\u4EF6"
     },
     "select_content_context_menu":{
-        "description":"\u4FDD\u5B58\u9009\u62E9\u5185\u5BB9",
+        "description":"保存选择内容",
         "message":"\u4FDD\u5B58\u9009\u62E9\u5185\u5BB9"
     },
     "select_image_context_menu":{
-        "description":"\u4FDD\u5B58\u9009\u4E2D\u7167\u7247",
+        "description":"保存选中照片",
         "message":"\u4FDD\u5B58\u9009\u4E2D\u7167\u7247"
     },
     "action_resize_title":{
-        "description":"\u5DE6\u53F3\u79FB\u52A8\u7A97\u53E3\u5927\u5C0F",
-        "message":"\u5DE6\u53F3\u79FB\u52A8\u7A97\u53E3\u5927\u5C0F"
+        "description":"缩放窗口大小",
+        "message":"\u7F29\u653E\u7A97\u53E3\u5927\u5C0F"
     },
     "is_retrieving_remote_image_tip":{
-        "description":"\u6B63\u5728\u4FDD\u5B58\u56FE\u7247\u6587\u4EF6",
+        "description":"正在保存图片文件",
         "message":"\u6B63\u5728\u4FDD\u5B58\u56FE\u7247\u6587\u4EF6..."
     },
     "retrieve_images_failed":{
-        "description":"\u56FE\u7247\u4FDD\u5B58\u5931\u8D25",
+        "description":"图片保存失败",
         "message":"\u56FE\u7247\u4FDD\u5B58\u5931\u8D25"
     },
     "is_uploading_images_tip":{
-        "description":"\u6B63\u5728\u4E0A\u4F20\u7167\u7247",
+        "description":"正在上传照片",
         "message":"\u6B63\u5728\u4E0A\u4F20\u7167\u7247"
     },
     "upload_images_failed":{
-        "description":"\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25",
+        "description":"文件上传失败",
         "message":"\u6587\u4EF6\u4E0A\u4F20\u5931\u8D25"
     },
+    "click_on_images":{
+        "description":"请在图片上右击！",
+        "message":"\u8BF7\u5728\u56FE\u7247\u4E0A\u53F3\u51FB!"
+    },
+    "not_found_content":{
+        "description":"未选中内容！",
+        "message":"\u672A\u9009\u4E2D\u5185\u5BB9!"
+    },
     "is_uploaded_images_tip":{
-        "description":"\u7167\u7247\u4E0A\u4F20\u6210\u529F",
+        "description":"照片上传成功",
         "message":"\u7167\u7247\u4E0A\u4F20\u6210\u529F"
     },
     "note_save_succeed":{
@@ -51,21 +59,25 @@
         "description":"保存失败",
         "message":"\u4FDD\u5B58\u5931\u8D25"
     },
+    "note_save_failed_and_sign_in":{
+        "description":"保存失败,请重新登录",
+        "message":"\u4FDD\u5B58\u5931\u8D25,\u8BF7\u91CD\u65B0\u767B\u5F55"
+    },
     "note_saving":{
         "description":"正在保存",
         "message":"\u6B63\u5728\u4FDD\u5B58"
     },
     "label_user_name":{
-        "description":"用户名",
-        "message":"\u7528\u6237\u540D"
+        "description":"91通行证帐号",
+        "message":"91\u901A\u884C\u8BC1\u5E10\u53F7"
     },
     "notice_user_name":{
         "description":"用户名不能为空!",
         "message":"\u7528\u6237\u540D\u4E0D\u80FD\u4E3A\u7A7A!"
     },
     "label_password":{
-        "description":"密码",
-        "message":"\u5BC6\u7801"
+        "description":"91通行证密码",
+        "message":"91\u901A\u884C\u8BC1\u5BC6\u7801"
     },
     "notice_password":{
         "description":"密码不能为空!",
